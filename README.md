@@ -7,4 +7,5 @@ You should only use this service when you really know why you need it and never 
 
 
 My use case for this service is a third party QA UI automation application which, sadly, works with SendKeys/SendWait and is used as part of CI (continuous integration) builds.
+
 As SendKeys/SendWait does NOT work when the machine is locked, but people are allowed to connect via RDP, i have to ensure that the virtual machine stays unlocked.
