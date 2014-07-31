@@ -31,27 +31,21 @@
         {
             if (changeDescription.Reason == SessionChangeReason.RemoteDisconnect)
             {
-                try
-                {
-                    TryTsCon();
-                }
-                catch
-                {
-                }
+                TryTsCon(changeDescription.SessionId);
             }
 
             base.OnSessionChange(changeDescription);
         }
 
-        private static void TryTsCon()
+        private static void TryTsCon(int sessionId)
         {
-            Console.WriteLine("Trying TsCon...");
-
-            var system = Environment.ExpandEnvironmentVariables(@"%systemroot%\Sysnative");
-
-            for (var i = 0; i < 10; i++)
+            try
             {
-                Process.Start(Path.Combine(system, "tscon.exe"), string.Format("{0} /dest:console", i));
+                var system = Environment.ExpandEnvironmentVariables(@"%systemroot%\Sysnative");
+                Process.Start(Path.Combine(system, "tscon.exe"), string.Format("{0} /dest:console", sessionId));
+            }
+            catch
+            {
             }
         }
     }
