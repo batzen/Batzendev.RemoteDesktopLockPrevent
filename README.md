@@ -15,9 +15,7 @@ As SendKeys/SendWait does NOT work when the machine is locked, but people are al
 - call tscon.exe with the current session id and attach it to the console session (tscon.exe $sessionId /dest:console)
 
 # Installation instructions
-- Clone the repository
-- Compile
-- Grab the binary
+- Download the binary from the release section
 - InstallUtil.exe LOCATION_OF_BINARY\Batzendev.RemoteDesktopLockPrevent.exe
 
 ## How to find InstallUtil
