@@ -17,6 +17,7 @@ As SendKeys/SendWait does NOT work when the machine is locked, but people are al
 # Installation instructions
 - Download the binary from the release section
 - InstallUtil.exe LOCATION_OF_BINARY\Batzendev.RemoteDesktopLockPrevent.exe
+  - **Please note that InstallUtil.exe has to be run as administrator**
 - Start the service "Batzendev.RemoteDesktopLockPrevent" by hand or reboot the machine you installed the service on
 
 ## How to find InstallUtil
