@@ -17,6 +17,7 @@ As SendKeys/SendWait does NOT work when the machine is locked, but people are al
 # Installation instructions
 - Download the binary from the release section
 - InstallUtil.exe LOCATION_OF_BINARY\Batzendev.RemoteDesktopLockPrevent.exe
+- Start the service "Batzendev.RemoteDesktopLockPrevent" by hand or reboot the machine you installed the service on
 
 ## How to find InstallUtil
 > This tool is installed with the .NET Framework to the folder %WINDIR%\Microsoft.NET\Framework[64]\framework_version. For example, the default path for the 32-bit version of the .NET Framework 4, 4.5, 4.5.1, and 4.5.2 is C:\Windows\Microsoft.NET\Framework\v4.0.30319\InstallUtil.exe.
