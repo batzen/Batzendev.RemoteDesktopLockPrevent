@@ -2,8 +2,10 @@
 {
     using System;
     using System.Diagnostics;
-    using System.ServiceProcess;
     using System.IO;
+    using System.ServiceProcess;
+    using System.Threading;
+    using System.Threading.Tasks;
 
     public partial class RemoteDesktopLockPreventService : ServiceBase
     {
@@ -16,11 +18,10 @@
 
         protected override void OnStart(string[] args)
         {
-                    
         }
 
         protected override void OnStop()
-        {   
+        {
         }
 
         /// <summary>
@@ -31,22 +32,77 @@
         {
             if (changeDescription.Reason == SessionChangeReason.RemoteDisconnect)
             {
-                TryTsCon(changeDescription.SessionId);
+                this.TryTransferSessionToConsole(changeDescription.SessionId);
             }
 
             base.OnSessionChange(changeDescription);
         }
 
-        private static void TryTsCon(int sessionId)
+        private void TryTransferSessionToConsole(int sessionId)
         {
+            this.EventLog.WriteEntry(string.Format("Trying to disconnect session \"{0}\"...", sessionId));
+
             try
             {
-                var system = Environment.ExpandEnvironmentVariables(@"%systemroot%\Sysnative");
-                Process.Start(Path.Combine(system, "tscon.exe"), string.Format("{0} /dest:console", sessionId));
+                Task.Run(() =>
+                {
+                    Thread.Sleep(TimeSpan.FromSeconds(5));
+
+                    this.TransferSessionToConsole(sessionId);
+                }).ContinueWith(t =>
+                    {
+                        if (t.Exception != null)
+                        {
+                            this.EventLog.WriteEntry(t.Exception.ToString(), EventLogEntryType.Error);
+                        }
+                        else
+                        {
+                            this.EventLog.WriteEntry("Unkown error in task.", EventLogEntryType.Error);
+                        }
+                    }, TaskContinuationOptions.OnlyOnFaulted);
             }
-            catch
+            catch (Exception exception)
             {
+                this.EventLog.WriteEntry(exception.ToString(), EventLogEntryType.Error);
             }
+        }
+
+        private void TransferSessionToConsole(int sessionId)
+        {
+            var system = Environment.ExpandEnvironmentVariables(@"%systemroot%\Sysnative");
+            var startInfo = new ProcessStartInfo(Path.Combine(system, "tscon.exe"), string.Format("{0} /dest:console", sessionId))
+            {
+                CreateNoWindow = true,
+                ErrorDialog = false,
+                RedirectStandardError = true,
+                RedirectStandardOutput = true,
+                UseShellExecute = false
+            };
+
+            using (var process = Process.Start(startInfo))
+            {
+                if (process != null)
+                {
+                    process.WaitForExit((int)TimeSpan.FromSeconds(10).TotalMilliseconds);
+
+                    if (process.ExitCode != 0)
+                    {
+                        var message =
+                            string.Format(
+                                "Unable to disconnect session \"{0}\". ExitCode: {1}\r\nOutput:\r\n{2}\r\nOutput:\r\n{3}",
+                                sessionId, process.ExitCode, process.StandardOutput.ReadToEnd(),
+                                process.StandardError.ReadToEnd());
+                        this.EventLog.WriteEntry(message, EventLogEntryType.Warning);
+                    }
+                }
+                else
+                {
+                    this.EventLog.WriteEntry(string.Format("Unable to disconnect session \"{0}\".", sessionId),
+                        EventLogEntryType.Warning);
+                }
+            }
+
+            this.EventLog.WriteEntry(string.Format("Disconnected session \"{0}\".", sessionId));
         }
     }
 }
