@@ -30,6 +30,8 @@
         /// <param name="changeDescription">A <see cref="T:System.ServiceProcess.SessionChangeDescription"/> structure that identifies the change type.</param>
         protected override void OnSessionChange(SessionChangeDescription changeDescription)
         {
+            this.EventLog.WriteEntry(string.Format("SessionChange for session \"{0}\" with reason \"{1}\".", changeDescription.SessionId, changeDescription.Reason));
+
             if (changeDescription.Reason == SessionChangeReason.RemoteDisconnect)
             {
                 this.TryTransferSessionToConsole(changeDescription.SessionId);
@@ -70,7 +72,7 @@
         private void TransferSessionToConsole(int sessionId)
         {
             var system = Environment.ExpandEnvironmentVariables(@"%systemroot%\Sysnative");
-            var startInfo = new ProcessStartInfo(Path.Combine(system, "tscon.exe"), string.Format("{0} /dest:console", sessionId))
+            var startInfo = new ProcessStartInfo(Path.Combine(system, "tscon.exe"), string.Format("{0} /dest:console /v", sessionId))
             {
                 CreateNoWindow = true,
                 ErrorDialog = false,
@@ -83,26 +85,35 @@
             {
                 if (process != null)
                 {
-                    process.WaitForExit((int)TimeSpan.FromSeconds(10).TotalMilliseconds);
-
-                    if (process.ExitCode != 0)
+                    if (process.WaitForExit((int)TimeSpan.FromSeconds(10).TotalMilliseconds))
+                    {
+                        if (process.ExitCode == 0)
+                        {
+                            this.EventLog.WriteEntry(string.Format("Disconnected session \"{0}\".", sessionId));
+                        }
+                        else
+                        {
+                            var message =
+                                string.Format(
+                                    "Unable to disconnect session \"{0}\". ExitCode: {1}\r\nOutput:\r\n{2}\r\nErrors:\r\n{3}",
+                                    sessionId, process.ExitCode, process.StandardOutput.ReadToEnd(), process.StandardError.ReadToEnd());
+                            this.EventLog.WriteEntry(message, EventLogEntryType.Warning);
+                        }
+                    }
+                    else
                     {
                         var message =
                             string.Format(
-                                "Unable to disconnect session \"{0}\". ExitCode: {1}\r\nOutput:\r\n{2}\r\nOutput:\r\n{3}",
-                                sessionId, process.ExitCode, process.StandardOutput.ReadToEnd(),
-                                process.StandardError.ReadToEnd());
+                                "Unable to disconnect session \"{0}\". Timeout while waiting for process. \r\nOutput:\r\n{1}\r\nErrors:\r\n{2}",
+                                sessionId, process.StandardOutput.ReadToEnd(), process.StandardError.ReadToEnd());
                         this.EventLog.WriteEntry(message, EventLogEntryType.Warning);
                     }
                 }
                 else
                 {
-                    this.EventLog.WriteEntry(string.Format("Unable to disconnect session \"{0}\".", sessionId),
-                        EventLogEntryType.Warning);
+                    this.EventLog.WriteEntry(string.Format("Unable to disconnect session \"{0}\". Called to tscon failed.", sessionId), EventLogEntryType.Warning);
                 }
             }
-
-            this.EventLog.WriteEntry(string.Format("Disconnected session \"{0}\".", sessionId));
         }
     }
 }
